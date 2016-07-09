@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<BluetoothDevice> devicesDiscovered = new ArrayList<BluetoothDevice>();
     EditText deviceIndexInput;
     Button connectToDevice;
+    Button disconnectDevice;
     BluetoothGatt bluetoothGatt;
 
     // Stops scanning after 5 seconds.
@@ -63,6 +64,14 @@ public class MainActivity extends AppCompatActivity {
         connectToDevice.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 connectToDeviceSelected();
+            }
+        });
+
+        disconnectDevice = (Button) findViewById(R.id.DisconnectButton);
+        disconnectDevice.setVisibility(View.INVISIBLE);
+        disconnectDevice.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                disconnectDeviceSelected();
             }
         });
 
@@ -138,11 +147,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             // this will get called when a device connects or disconnects
-            MainActivity.this.runOnUiThread(new Runnable() {
-                public void run() {
-                    peripheralTextView.append("device connection state change\n");
-                }
-            });
+            switch (newState) {
+                case 0:
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            peripheralTextView.append("device disconnected\n");
+                            connectToDevice.setVisibility(View.VISIBLE);
+                            disconnectDevice.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                    break;
+                case 2:
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            peripheralTextView.append("device connected\n");
+                            connectToDevice.setVisibility(View.INVISIBLE);
+                            disconnectDevice.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    break;
+                default:
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        public void run() {
+                            peripheralTextView.append("we encounterned an unknown state, uh oh\n");
+                        }
+                    });
+                    break;
+            }
         }
 
         @Override
@@ -187,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
         deviceIndex = 0;
         devicesDiscovered.clear();
         peripheralTextView.setText("");
+        peripheralTextView.append("Started Scanning\n");
         startScanningButton.setVisibility(View.INVISIBLE);
         stopScanningButton.setVisibility(View.VISIBLE);
         AsyncTask.execute(new Runnable() {
@@ -206,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void stopScanning() {
         System.out.println("stopping scanning");
-        peripheralTextView.append("Stopped Scanning");
+        peripheralTextView.append("Stopped Scanning\n");
         btScanning = false;
         startScanningButton.setVisibility(View.VISIBLE);
         stopScanningButton.setVisibility(View.INVISIBLE);
@@ -219,7 +251,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectToDeviceSelected() {
+        peripheralTextView.append("Trying to connect to device at index: " + deviceIndexInput.getText() + "\n");
         int deviceSelected = Integer.parseInt(deviceIndexInput.getText().toString());
         bluetoothGatt = devicesDiscovered.get(deviceSelected).connectGatt(this, false, btleGattCallback);
+    }
+
+    public void disconnectDeviceSelected() {
+        peripheralTextView.append("Disconnecting from device\n");
     }
 }
