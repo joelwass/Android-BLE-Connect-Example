@@ -147,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
             // this will get called when a device connects or disconnects
+            System.out.println(newState);
             switch (newState) {
                 case 0:
                     MainActivity.this.runOnUiThread(new Runnable() {
@@ -258,5 +259,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void disconnectDeviceSelected() {
         peripheralTextView.append("Disconnecting from device\n");
+        bluetoothGatt.disconnect();
     }
 }
