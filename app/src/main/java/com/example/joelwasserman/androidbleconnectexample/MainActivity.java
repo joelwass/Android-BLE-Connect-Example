@@ -31,7 +31,11 @@ import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     EditText deviceIndexInput;
     Button connectToDevice;
     Button disconnectDevice;
+    Button readWordCountButton;
     BluetoothGatt bluetoothGatt;
 
     public final static String ACTION_GATT_CONNECTED =
@@ -67,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
             "com.example.bluetooth.le.EXTRA_DATA";
 
     public Map<String, String> uuids = new HashMap<String, String>();
+    public Map<String, BluetoothGattCharacteristic> characteristics = new HashMap<String, BluetoothGattCharacteristic>();
+    public Map<Date, Integer> dailyCounts = new HashMap<Date, Integer>();
 
     // Stops scanning after 5 seconds.
     private Handler mHandler = new Handler();
@@ -106,6 +113,13 @@ public class MainActivity extends AppCompatActivity {
         startScanningButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startScanning();
+            }
+        });
+
+        readWordCountButton = (Button) findViewById(R.id.ReadWordCountButton);
+        readWordCountButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                readWordCount();
             }
         });
 
@@ -200,9 +214,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
+        // this will get called when a device connects or disconnects
         public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
-            // this will get called when a device connects or disconnects
-            System.out.println(newState);
             switch (newState) {
                 case 0:
                     MainActivity.this.runOnUiThread(new Runnable() {
@@ -249,10 +262,13 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         // Result of a characteristic read operation
-        public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
+        public void onCharacteristicRead(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    public void run() {
+                        peripheralTextView.append("Characteristic read: "+uuids.get(characteristic.getUuid().toString().toUpperCase())+"\n");
+                    }
+                });
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
         }
@@ -261,7 +277,40 @@ public class MainActivity extends AppCompatActivity {
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
 
-        System.out.println(characteristic.getUuid());
+        int flag = characteristic.getProperties();
+        int format = -1;
+        if ((flag & 0x01) != 0) {
+            format = BluetoothGattCharacteristic.FORMAT_UINT32;
+            System.out.println("Word count is of format UINT32");
+        } else {
+            format = BluetoothGattCharacteristic.FORMAT_UINT8;
+            System.out.println("Word count is of format UINT8");
+        }
+
+        int count = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        System.out.println(bytesToHex(characteristic.getValue()));
+        
+//        System.out.println(value.toString());
+//        for (int i = 0; i < value.length; i++) {
+//            if (i % 8 == 0) {
+//                byte[] timestamp = Arrays.copyOfRange(value, i, i+4);
+//                Date date = new Date(ByteBuffer.wrap(timestamp).getInt());
+//                int count = ByteBuffer.wrap(Arrays.copyOfRange(value, i+4, i+8)).getInt();
+//                dailyCounts.put(date, count);
+//            }
+//        }
+        System.out.println(count);
+    }
+
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
     @Override
@@ -327,17 +376,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void connectToDeviceSelected() {
-        peripheralTextView.append("Trying to connect to device at index: " + deviceIndexInput.getText() + "\n");
-        int deviceSelected = Integer.parseInt(deviceIndexInput.getText().toString());
-        bluetoothGatt = devicesDiscovered.get(deviceSelected).connectGatt(this, false, btleGattCallback);
-    }
-
-    public void disconnectDeviceSelected() {
-        peripheralTextView.append("Disconnecting from device\n");
-        bluetoothGatt.disconnect();
-    }
-
     private void displayGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
 
@@ -356,7 +394,7 @@ public class MainActivity extends AppCompatActivity {
                     gattService.getCharacteristics();
 
             // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic :
+            for (final BluetoothGattCharacteristic gattCharacteristic :
                     gattCharacteristics) {
 
                 final String charUuid = gattCharacteristic.getUuid().toString();
@@ -364,11 +402,31 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
                         peripheralTextView.append("Characteristic discovered for service: "+uuids.get(charUuid.toUpperCase())+"\n");
+                        characteristics.put(charUuid.toUpperCase(), gattCharacteristic);
                     }
                 });
-
             }
         }
+    }
+
+
+    public void connectToDeviceSelected() {
+        peripheralTextView.append("Trying to connect to device at index: " + deviceIndexInput.getText() + "\n");
+        int deviceSelected = Integer.parseInt(deviceIndexInput.getText().toString());
+        bluetoothGatt = devicesDiscovered.get(deviceSelected).connectGatt(this, false, btleGattCallback);
+    }
+
+    public void disconnectDeviceSelected() {
+        peripheralTextView.append("Disconnecting from device\n");
+        bluetoothGatt.disconnect();
+    }
+
+    public void readWordCount() {
+        if (btAdapter == null || bluetoothGatt == null) {
+            System.out.println("BluetoothAdapter not initialized");
+            return;
+        }
+        bluetoothGatt.readCharacteristic(characteristics.get("EA540021-7D58-4E4B-A451-4BDD68DFE056"));
     }
 
     @Override

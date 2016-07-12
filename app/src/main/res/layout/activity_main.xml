@@ -52,6 +52,14 @@
         android:id="@+id/DisconnectButton"
         android:layout_alignParentBottom="true"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Read Word Count"
+        android:id="@+id/ReadWordCountButton"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="150dp"/>
+
     <EditText
         android:layout_width="100dp"
         android:layout_height="50dp"
