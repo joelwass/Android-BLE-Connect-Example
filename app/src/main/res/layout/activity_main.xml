@@ -33,8 +33,8 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="100dp"
-        android:layout_marginBottom="80dp"
+        android:layout_marginTop="150dp"
+        android:layout_marginBottom="70dp"
         android:id="@+id/PeripheralTextView"
         android:scrollbars="vertical"
         android:maxLines="30" />
@@ -44,6 +44,13 @@
         android:text="Connect to device with index: "
         android:id="@+id/ConnectButton"
         android:layout_alignParentBottom="true"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Subscribe To Word Count"
+        android:id="@+id/subscribeWordCount"
+        android:layout_marginTop="90dp" />
 
     <Button
         android:layout_width="wrap_content"

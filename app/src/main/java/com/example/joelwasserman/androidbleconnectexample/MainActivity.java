@@ -7,11 +7,13 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -39,6 +41,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -58,18 +61,15 @@ public class MainActivity extends AppCompatActivity {
     Button connectToDevice;
     Button disconnectDevice;
     Button readWordCountButton;
+    Button subscribeWordCount;
     BluetoothGatt bluetoothGatt;
 
-    public final static String ACTION_GATT_CONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED =
-            "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
+    public final static String ACTION_GATT_CONNECTED = "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
+    public final static String ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
+    public final static String ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
+    public final static String EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA";
+    public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 
     public Map<String, String> uuids = new HashMap<String, String>();
     public Map<String, BluetoothGattCharacteristic> characteristics = new HashMap<String, BluetoothGattCharacteristic>();
@@ -113,6 +113,13 @@ public class MainActivity extends AppCompatActivity {
         startScanningButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startScanning();
+            }
+        });
+
+        subscribeWordCount = (Button) findViewById(R.id.subscribeWordCount);
+        subscribeWordCount.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                subscribeToWordCount();
             }
         });
 
@@ -206,11 +213,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
             // this will get called anytime you perform a read or write characteristic operation
+            System.out.println("Characteristic changed");
             MainActivity.this.runOnUiThread(new Runnable() {
                 public void run() {
-                    peripheralTextView.append("device read or wrote to\n");
+                    peripheralTextView.append("New Word Count: \n");
                 }
             });
+            readWordCount();
         }
 
         @Override
@@ -277,19 +286,9 @@ public class MainActivity extends AppCompatActivity {
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
 
-        int flag = characteristic.getProperties();
-        int format = -1;
-        if ((flag & 0x01) != 0) {
-            format = BluetoothGattCharacteristic.FORMAT_UINT32;
-            System.out.println("Word count is of format UINT32");
-        } else {
-            format = BluetoothGattCharacteristic.FORMAT_UINT8;
-            System.out.println("Word count is of format UINT8");
-        }
-
-        int count = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        final int count = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getInt();
         System.out.println(bytesToHex(characteristic.getValue()));
-        
+
 //        System.out.println(value.toString());
 //        for (int i = 0; i < value.length; i++) {
 //            if (i % 8 == 0) {
@@ -299,6 +298,11 @@ public class MainActivity extends AppCompatActivity {
 //                dailyCounts.put(date, count);
 //            }
 //        }
+        MainActivity.this.runOnUiThread(new Runnable() {
+            public void run() {
+                peripheralTextView.append(count+"\n");
+            }
+        });
         System.out.println(count);
     }
 
@@ -427,6 +431,17 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         bluetoothGatt.readCharacteristic(characteristics.get("EA540021-7D58-4E4B-A451-4BDD68DFE056"));
+    }
+
+    public void subscribeToWordCount() {
+        System.out.println("Subscribing to word count");
+        peripheralTextView.append("Subscribing to word count\n");
+        BluetoothGattCharacteristic wordCountUpdate = characteristics.get("EA540021-7D58-4E4B-A451-4BDD68DFE056");
+        BluetoothGattDescriptor descriptor = wordCountUpdate.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        Boolean status = bluetoothGatt.writeDescriptor(descriptor);
+        System.out.println(status);
+        bluetoothGatt.setCharacteristicNotification(wordCountUpdate, true);
     }
 
     @Override
