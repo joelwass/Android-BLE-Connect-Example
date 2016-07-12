@@ -141,6 +141,32 @@ public class MainActivity extends AppCompatActivity {
             builder.show();
         }
 
+        uuids.put("EA540000-7D58-4E4B-A451-4BDD68DFE056", "Status");
+        uuids.put("EA540001-7D58-4E4B-A451-4BDD68DFE056", "status_flags");
+        uuids.put("EA540002-7D58-4E4B-A451-4BDD68DFE056", "unix_time");
+        uuids.put("EA540003-7D58-4E4B-A451-4BDD68DFE056", "mic_volume");
+
+        uuids.put("EA540010-7D58-4E4B-A451-4BDD68DFE056", "Config");
+        uuids.put("EA540011-7D58-4E4B-A451-4BDD68DFE056", "threshold");
+        uuids.put("EA540019-7D58-4E4B-A451-4BDD68DFE056", "indicator_led_enable");
+        uuids.put("EA54001A-7D58-4E4B-A451-4BDD68DFE056", "request_to_enter_bootloader");
+        uuids.put("EA54001B-7D58-4E4B-A451-4BDD68DFE056", "sync_mode");
+        uuids.put("EA54001C-7D58-4E4B-A451-4BDD68DFE056", "device_name");
+        uuids.put("EA54001D-7D58-4E4B-A451-4BDD68DFE056", "device_reset");
+
+        uuids.put("EA540020-7D58-4E4B-A451-4BDD68DFE056", "WordCountData");
+        uuids.put("EA540021-7D58-4E4B-A451-4BDD68DFE056", "total_word_count");
+        uuids.put("EA540022-7D58-4E4B-A451-4BDD68DFE056", "enable");
+        uuids.put("EA540024-7D58-4E4B-A451-4BDD68DFE056", "valid_records");
+        uuids.put("EA540025-7D58-4E4B-A451-4BDD68DFE056", "record");
+        uuids.put("EA540026-7D58-4E4B-A451-4BDD68DFE056", "oldest_record");
+        uuids.put("EA540027-7D58-4E4B-A451-4BDD68DFE056", "next_record");
+        uuids.put("EA540028-7D58-4E4B-A451-4BDD68DFE056", "delete_record");
+        uuids.put("EA540029-7D58-4E4B-A451-4BDD68DFE056", "new_record");
+        uuids.put("EA54002A-7D58-4E4B-A451-4BDD68DFE056", "daily_word_count_history");
+        uuids.put("EA54002B-7D58-4E4B-A451-4BDD68DFE056", "daily_reset_time");
+        uuids.put("EA54002C-7D58-4E4B-A451-4BDD68DFE056", "daily_word_goal");
+
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
@@ -322,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("Service discovered: " + uuid);
             MainActivity.this.runOnUiThread(new Runnable() {
                 public void run() {
-                    peripheralTextView.append("Service disovered: "+uuid+"\n");
+                    peripheralTextView.append("Service disovered: "+uuids.get(uuid.toUpperCase())+"\n");
                 }
             });
             new ArrayList<HashMap<String, String>>();
@@ -337,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println("Characteristic discovered for service: " + charUuid);
                 MainActivity.this.runOnUiThread(new Runnable() {
                     public void run() {
-                        peripheralTextView.append("Characteristic discovered for service: "+charUuid+"\n");
+                        peripheralTextView.append("Characteristic discovered for service: "+uuids.get(charUuid.toUpperCase())+"\n");
                     }
                 });
 
