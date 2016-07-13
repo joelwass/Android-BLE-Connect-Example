@@ -73,15 +73,12 @@ public class MainActivity extends AppCompatActivity {
 
     public Map<String, String> uuids = new HashMap<String, String>();
     public Map<String, BluetoothGattCharacteristic> characteristics = new HashMap<String, BluetoothGattCharacteristic>();
-    public Map<Date, Integer> dailyCounts = new HashMap<Date, Integer>();
+//    public Map<Date, Integer> dailyCounts = new HashMap<Date, Integer>();
 
     // Stops scanning after 5 seconds.
     private Handler mHandler = new Handler();
     private static final long SCAN_PERIOD = 5000;
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
+
     private GoogleApiClient client;
 
     @Override
